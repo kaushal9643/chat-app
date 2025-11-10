@@ -29,26 +29,6 @@ This app allows users to **signup/login, chat in real-time, share images**, and 
 
 ---
 
-## Project Structure 📁
-
-client/          # React frontend
-├─ src/
-│  ├─ pages/       # All page components
-│  ├─ components/  # Reusable components
-│  ├─ context/     # React Context API for state management
-│  ├─ assets/      # Images, icons, and other static files
-│  └─ lib/         # Utility functions
-
-server/          # Node.js backend
-├─ controllers/    # Route controllers
-├─ middleware/     # Auth and other middlewares
-├─ models/         # MongoDB models
-├─ routes/         # Express route definitions
-├─ lib/            # Utility functions (DB, cloudinary, etc.)
-└─ server.js       # Entry point of the server
-
----
-
 ## Getting Started 🏃‍♂️
 
 ### Prerequisites
@@ -62,19 +42,20 @@ server/          # Node.js backend
 1. **Clone the repository**
 
 2. **Install dependencies**
-# Frontend
-cd client
-npm install
+### Frontend
+- cd client
+- npm install
 
-# Backend
-cd ../server
-npm install
+### Backend
+- cd ../server
+- npm install
 
 3. **Create .env files**
-# Client (client/.env)
+### Client (client/.env)
 VITE_BACKEND_URL=http://localhost:5000
 
 # Server (server/.env)
+```
 PORT=5000
 MONGODB_URI=your_mongodb_uri
 JWT_SECRET=your_jwt_secret
