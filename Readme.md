@@ -43,12 +43,16 @@ This app allows users to **signup/login, chat in real-time, share images**, and 
 
 2. **Install dependencies**
 - Frontend
-- cd client
-- npm install
+```
+cd client
+npm install
+```
 
 - Backend
-- cd ../server
-- npm install
+```
+cd ../server
+npm install
+```
 
 3. **Create .env files**
 - Client (client/.env)
