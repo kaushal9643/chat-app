@@ -42,17 +42,19 @@ This app allows users to **signup/login, chat in real-time, share images**, and 
 1. **Clone the repository**
 
 2. **Install dependencies**
-### Frontend
+- Frontend
 - cd client
 - npm install
 
-### Backend
+- Backend
 - cd ../server
 - npm install
 
 3. **Create .env files**
-### Client (client/.env)
+- Client (client/.env)
+```
 VITE_BACKEND_URL=http://localhost:5000
+```
 
 # Server (server/.env)
 ```
@@ -62,6 +64,7 @@ JWT_SECRET=your_jwt_secret
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+```
 
 ---
 
