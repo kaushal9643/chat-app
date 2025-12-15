@@ -4,7 +4,7 @@ import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../server.js";
 import { GoogleGenAI } from "@google/genai";
 import { saveMessageToRedis, getMessagesFromRedis } from '../utils/redisMessage.js';
-import {redis} from '../redis.js';
+import redis from '../redis.js';
 
 // Get all users except the logged in user
 export const getUsersForSidebar = async (req, res) => {
