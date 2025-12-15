@@ -1,4 +1,4 @@
-import redis from '../redis.js';
+import {redis} from '../redis.js';
 
 // export const saveMessageToRedis = async (roomId, messageData) => {
 //     const key = `chat:${roomId}`;
