@@ -1,6 +1,7 @@
 import { Children, createContext, useContext, useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
 import {toast} from 'react-hot-toast';
+import axios from 'axios'
 
 
 export const ChatContext = createContext();
@@ -10,8 +11,63 @@ export const ChatProvider = ({children})=>{
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [unseenMessages, setUnseenMessages] = useState({})
+    const { socket } = useContext(AuthContext);
+    const [typingUsers, setTypingUsers] = useState([]);
 
-    const {socket, axios} = useContext(AuthContext);
+//     useEffect(() => {
+//     if (!socket) return;
+
+//     const handleTyping = ({ userId }) => {
+//       setTypingUsers(prev => [...new Set([...prev, userId])]);
+//     };
+//     const handleStopTyping = ({ userId }) => {
+//       setTypingUsers(prev => prev.filter(id => id !== userId));
+//     };
+
+//     socket.on("typing", handleTyping);
+//     socket.on("stopTyping", handleStopTyping);
+
+//     return () => {
+//       socket.off("typing", handleTyping);
+//       socket.off("stopTyping", handleStopTyping);
+//     };
+//   }, [socket]);
+
+
+useEffect(() => {
+  if (!socket) return;
+
+  // 🔹 Chat screen typing (room based)
+  const handleTyping = ({ userId }) => {
+    setTypingUsers(prev => [...new Set([...prev, userId])]);
+  };
+
+  const handleStopTyping = ({ userId }) => {
+    setTypingUsers(prev => prev.filter(id => id !== userId));
+  };
+
+  // 🔹 Sidebar typing (global)
+  const handleSidebarTyping = ({ userId }) => {
+    setTypingUsers(prev => [...new Set([...prev, userId])]);
+  };
+
+  const handleSidebarStopTyping = ({ userId }) => {
+    setTypingUsers(prev => prev.filter(id => id !== userId));
+  };
+
+  socket.on("typing", handleTyping);
+  socket.on("stopTyping", handleStopTyping);
+
+  socket.on("sidebarTyping", handleSidebarTyping);
+  socket.on("sidebarStopTyping", handleSidebarStopTyping);
+
+  return () => {
+    socket.off("typing", handleTyping);
+    socket.off("stopTyping", handleStopTyping);
+    socket.off("sidebarTyping", handleSidebarTyping);
+    socket.off("sidebarStopTyping", handleSidebarStopTyping);
+  };
+}, [socket]);
 
     // Function to get all users for sidebar
     const getUsers = async ()=>{
@@ -82,7 +138,7 @@ export const ChatProvider = ({children})=>{
     }, [socket, selectedUser])
    
     const value = {  
-        messages, users, selectedUser, getUsers, getMessages, sendMessage, setSelectedUser, unseenMessages, setUnseenMessages
+        messages, users, selectedUser, getUsers, getMessages, sendMessage, setSelectedUser, unseenMessages, setUnseenMessages, typingUsers, setTypingUsers,
     }
 
     return (
