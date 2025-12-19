@@ -13,7 +13,7 @@ const app = express();
 const server = http.createServer(app)
 
 const ALLOWED_ORIGIN = process.env.NODE_ENV === "production" 
-    ? "https://your-frontend-name.vercel.app" 
+    ? "https://chat-app-psi-silk.vercel.app" 
     : "http://localhost:5173";
 
 // Initialize socket.io server
