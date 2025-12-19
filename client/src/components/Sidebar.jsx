@@ -5,7 +5,7 @@ import { AuthContext } from '../../context/AuthContext'
 import { ChatContext } from '../../context/ChatContext'
 
 const Sidebar = () => {
-    const { getUsers, users, selectedUser, setSelectedUser, unseenMessages, setUnseenMessages, typingUsers } = useContext(ChatContext)
+    const { getUsers, users, selectedUser, setSelectedUser, unseenMessages, setUnseenMessages, sidebarTyping } = useContext(ChatContext)
 
     const { logout, onlineUsers } = useContext(AuthContext)
     const [input, setInput] = useState(false)
@@ -13,9 +13,20 @@ const Sidebar = () => {
 
     const filteredUsers = input ? users.filter((user) => user.fullName.toLowerCase().includes(input.toLowerCase())) : users;
 
-    useEffect(() => {
-        getUsers()
-    }, [onlineUsers])
+    // Sidebar.jsx
+
+// This runs once when you log in AND whenever someone comes online/offline
+useEffect(() => {
+    getUsers();
+}, [onlineUsers.length]); // Using .length is more stable for tracking changes
+//     useEffect(() => {
+//         getUsers()
+//     }, [onlineUsers])
+
+//     // Sidebar.jsx
+// useEffect(() => {
+//     getUsers(); 
+// }, []); // <--- Empty array ensures this runs as soon as you log in
 
     return (
         <div className={`bg-[#8185B2]/10 h-full p-5 rounded-r-xl overflow-y-scroll text-white ${selectedUser ? "max-md:hidden" : ""}`}>
@@ -49,13 +60,13 @@ const Sidebar = () => {
                         <div className='flex flex-col leading-5'>
                             <p>{user.fullName}</p>
 
-                            {
-                                typingUsers.includes(user._id)
-                                    ? <span className='text-gray-400 text-xs'>typing...</span>
-                                    : onlineUsers.includes(user._id)
-                                        ? <span className='text-green-400 text-xs'>Online</span>
-                                        : <span className='text-neutral-400 text-xs'>Offline</span>
+                            {sidebarTyping.includes(user._id)
+                                ? <span className="text-gray-400 text-xs">typing...</span>
+                                : onlineUsers.includes(user._id)
+                                    ? <span className="text-green-400 text-xs">Online</span>
+                                    : <span className="text-neutral-400 text-xs">Offline</span>
                             }
+
 
 
                         </div>

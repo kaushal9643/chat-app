@@ -4,19 +4,33 @@ import Redis from "ioredis";
 let redis;
 
 if (process.env.REDIS_URL) {
-  // Production / Upstash TCP Redis
   redis = new Redis(process.env.REDIS_URL, {
     maxRetriesPerRequest: 3,
     enableReadyCheck: false,
+    tls: {}, // IMPORTANT for Upstash
   });
-  console.log("Connected to Redis (TCP / Upstash)");
+
+  redis.on("connect", () => {
+    console.log("✅ Connected to Redis (Upstash)");
+  });
+
+  redis.on("error", (err) => {
+    console.error("❌ Redis error:", err.message);
+  });
+
 } else {
-  // Fallback (local Redis)
   redis = new Redis({
     host: "127.0.0.1",
     port: 6379,
   });
-  console.log("Connected to Local Redis");
+
+  redis.on("connect", () => {
+    console.log("✅ Connected to Local Redis");
+  });
+
+  redis.on("error", (err) => {
+    console.error("❌ Local Redis error:", err.message);
+  });
 }
 
 export { redis };

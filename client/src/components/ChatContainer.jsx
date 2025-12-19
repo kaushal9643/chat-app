@@ -7,13 +7,23 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 
 const ChatContainer = () => {
-  const { messages, selectedUser, setSelectedUser, sendMessage, getMessages, typingUsers, setTypingUsers } = useContext(ChatContext);
+  const { messages, selectedUser, setSelectedUser, sendMessage, getMessages, roomTyping } = useContext(ChatContext);
   const { authUser, onlineUsers, socket } = useContext(AuthContext);
 
   const scrollEnd = useRef();
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+  const getRoomId = (user1, user2) => [user1, user2].sort().join("_");
+
+  const roomId =
+  selectedUser && authUser
+    ? getRoomId(authUser._id, selectedUser._id)
+    : null;
+
+const isTyping =
+  roomId && roomTyping[roomId]?.includes(selectedUser._id);
 
   // Fetch AI suggestions for received messages
   const fetchSuggestions = async () => {
@@ -45,26 +55,6 @@ const ChatContainer = () => {
     fetchSuggestions();
   }, [messages, selectedUser]);
 
-  // useEffect(() => {
-  //   if (!socket) return;
-
-  //   const handleTypingEvent = ({ userId }) => {
-  //     setTypingUsers((prev) => [...new Set([...prev, userId])]);
-  //   };
-
-  //   const handleStopTypingEvent = ({ userId }) => {
-  //     setTypingUsers((prev) => prev.filter((id) => id !== userId));
-  //   };
-
-  //   socket.on("typing", handleTypingEvent);
-  //   socket.on("stopTyping", handleStopTypingEvent);
-
-  //   return () => {
-  //     socket.off("typing", handleTypingEvent);
-  //     socket.off("stopTyping", handleStopTypingEvent);
-  //   };
-  // }, [socket]);
-
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -76,24 +66,46 @@ const ChatContainer = () => {
   };
 
   const typingTimeoutRef = useRef(null);
-  const getRoomId = (user1, user2) => [user1, user2].sort().join("_");
 
 
-  const handleTyping = () => {
-    if (!socket || !authUser) return;
+// const handleTyping = () => {
+//   if (!socket || !authUser || !selectedUser) return;
 
-    const roomId = getRoomId(authUser._id, selectedUser._id);
+//   const roomId = getRoomId(authUser._id, selectedUser._id);
 
-    socket.emit("typing", { roomId, userId: authUser._id });
+//   socket.emit("typing", { roomId, userId: authUser._id });
 
-    // Clear previous timeout
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+//   if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
-    // Optional: emit "stop typing" after 2 sec of inactivity
-    typingTimeoutRef.current = setTimeout(() => {
-      socket.emit("stopTyping", { roomId, userId: authUser._id });
-    }, 2000);
-  };
+//   typingTimeoutRef.current = setTimeout(() => {
+//     socket.emit("stopTyping", { roomId, userId: authUser._id });
+//   }, 800);
+// };
+
+
+// ChatContainer.jsx - Update handleTyping
+const handleTyping = () => {
+  if (!socket || !authUser || !selectedUser) return;
+
+  const roomId = getRoomId(authUser._id, selectedUser._id);
+
+  // ADD receiverId here!
+  socket.emit("typing", { 
+    roomId, 
+    userId: authUser._id, 
+    receiverId: selectedUser._id 
+  });
+
+  if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+  typingTimeoutRef.current = setTimeout(() => {
+    socket.emit("stopTyping", { 
+      roomId, 
+      userId: authUser._id, 
+      receiverId: selectedUser._id 
+    });
+  }, 800);
+};
 
   // join room on chat selection
   useEffect(() => {
@@ -136,7 +148,7 @@ const ChatContainer = () => {
           {/* {selectedUser.fullName} */}
           <div className="flex items-center gap-2">
             <span>{selectedUser.fullName}</span>
-            {typingUsers.includes(selectedUser._id) && (
+            {isTyping && (
               <span className="text-sm text-gray-400 ml-2"> typing...</span>
             )}
           </div>

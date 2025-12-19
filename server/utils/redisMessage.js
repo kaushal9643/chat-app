@@ -1,27 +1,26 @@
-import {redis} from '../redis.js';
-
-// export const saveMessageToRedis = async (roomId, messageData) => {
-//     const key = `chat:${roomId}`;
-//     await redis.lpush(key, JSON.stringify(messageData));
-//     await redis.ltrim(key, 0, 99);
-//     // console.log("Saved to Redis:", key, messageData.text || messageData.image);
-// };
+import {redis} from "../redis.js";
 
 export const saveMessageToRedis = async (roomId, messageData) => {
+  if (!redis) return;
+
+  try {
     const key = `chat:${roomId}`;
-    await redis.rpush(key, JSON.stringify(messageData));  // 👈 RPUSH = append to end
-    await redis.ltrim(key, -100, -1);                     // keep latest 100 messages
+    await redis.rpush(key, JSON.stringify(messageData));
+    await redis.ltrim(key, -100, -1);
+  } catch (err) {
+    console.error("Redis save failed:", err.message);
+  }
 };
 
-// export const getMessagesFromRedis = async (roomId) => {
-//     const key = `chat:${roomId}`;
-//     const cached = await redis.lrange(key, 0, 99);
-//     return cached.map(JSON.parse);
-// };
-
-
 export const getMessagesFromRedis = async (roomId) => {
+  if (!redis) return null;
+
+  try {
     const key = `chat:${roomId}`;
-    const cached = await redis.lrange(key, 0, -1); // oldest → newest
-    return cached.map(JSON.parse);
+    const cached = await redis.lrange(key, 0, -1);
+    return cached.length ? cached.map(JSON.parse) : null;
+  } catch (err) {
+    console.error("Redis fetch failed:", err.message);
+    return null;
+  }
 };

@@ -6,7 +6,7 @@ import { connectDB } from "./lib/db.js";
 import userRouter from "./routes/userRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
 import { Server } from "socket.io";
-import {redis} from "./redis.js";
+import { redis } from "./redis.js";
 
 // Create Express app and HTTP server
 
@@ -27,52 +27,70 @@ io.on("connection", async (socket) => {
     console.log("User connected", userId);
 
     if (userId) {
-        userSocketMap[userId] = socket.id;
+        userSocketMap[userId.toString()] = socket.id;
     }
 
-    // --- Redis Presence Logic ---
-    const heartbeatInterval = setInterval(async () => {
-        await redis.set(`user:online:${userId}`, "online");
-        await redis.expire(`user:online:${userId}`, 60);
-    }, 30000); // refresh every 30 seconds
-
-    await redis.sadd("online_users", userId);
-
-    const onlineUsers = await redis.smembers("online_users");
-
-    // Broadcast presence + for UI highlight (green dot)
-    io.emit("getOnlineUsers", onlineUsers);
-
     // Emit online users to all connected client
-    // io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
     // join room
     socket.on("joinRoom", ({ roomId }) => {
         socket.join(roomId);
     });
-    // --- Typing Indicator ---
-    socket.on("typing", ({ roomId, userId }) => {
-        // emit to everyone in the room except sender
-        socket.to(roomId).emit("typing", { userId });
-        // 2️⃣ Sidebar (global)
-        socket.broadcast.emit("sidebarTyping", { userId });
-    });
 
-    socket.on("stopTyping", ({ roomId, userId }) => {
-        socket.to(roomId).emit("stopTyping", { userId });
-        socket.broadcast.emit("sidebarStopTyping", { userId });
-    });
+    // --- Typing Indicator ---
+    // socket.on("typing", ({ roomId, userId }) => {
+    //     // emit to everyone in the room except sender
+    //     socket.to(roomId).emit("typing", {roomId, userId });
+    //     // Sidebar typing (only metadata)
+
+    //     // socket.emit("typing", {roomId, userId});
+
+    //     // socket.broadcast.emit("sidebarTyping", {
+    //     //     roomId,
+    //     //     userId
+    //     // });
+
+    //     socket.to(roomId).emit("sidebarTyping", { roomId, userId });
+    // });
+
+    // socket.on("stopTyping", ({ roomId, userId }) => {
+    //     socket.to(roomId).emit("stopTyping", { roomId, userId });
+    //     // socket.emit("stopTyping", {roomId, userId});
+    //     // socket.broadcast.emit("sidebarStopTyping", {
+    //     //     roomId,
+    //     //     userId
+    //     // });
+
+    //      // Sidebar stop typing only to room
+    //     socket.to(roomId).emit("sidebarStopTyping", { roomId, userId });
+    // });
+
+    // server.js - Update these handlers
+socket.on("typing", ({ roomId, userId, receiverId }) => {
+    // 1. Send to the room (for people with chat open)
+    socket.to(roomId).emit("typing", { roomId, userId });
+
+    // 2. Send to receiver's private socket (for Sidebar updates)
+    const receiverSocketId = userSocketMap[receiverId];
+    if (receiverSocketId) {
+        io.to(receiverSocketId).emit("sidebarTyping", { userId });
+    }
+});
+
+socket.on("stopTyping", ({ roomId, userId, receiverId }) => {
+    socket.to(roomId).emit("stopTyping", { roomId, userId });
+
+    const receiverSocketId = userSocketMap[receiverId];
+    if (receiverSocketId) {
+        io.to(receiverSocketId).emit("sidebarStopTyping", { userId });
+    }
+});
 
     socket.on("disconnect", async () => {
-        clearInterval(heartbeatInterval); // stop heartbeat
         console.log("User Disconnected", userId);
         delete userSocketMap[userId];
-
-        // Remove from presence set
-        await redis.srem("online_users", userId);
-        await redis.del(`user:online:${userId}`);
-        const onlineUsers = await redis.smembers("online_users");
-        io.emit("getOnlineUsers", onlineUsers);
+        io.emit("getOnlineUsers", Object.keys(userSocketMap));
     })
 })
 

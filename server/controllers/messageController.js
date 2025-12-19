@@ -4,7 +4,7 @@ import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../server.js";
 import { GoogleGenAI } from "@google/genai";
 import { saveMessageToRedis, getMessagesFromRedis } from '../utils/redisMessage.js';
-import {redis} from '../redis.js';
+import { redis } from '../redis.js';
 
 // Get all users except the logged in user
 export const getUsersForSidebar = async (req, res) => {
@@ -36,17 +36,22 @@ export const getMessages = async (req, res) => {
 
         const roomId = [myId, selectedUserId].sort().join("_"); // consistent roomId
 
-         // 1️⃣ Try Redis first
+        // 1️⃣ Try Redis first
         let messages = await getMessagesFromRedis(roomId);
 
         if (messages.length === 0) {
             // 2️⃣ If Redis empty, fetch from MongoDB
-            messages = await Message.find({
-                $or: [
-                    { senderId: myId, receiverId: selectedUserId },
-                    { senderId: selectedUserId, receiverId: myId },
-                ]
-            }).sort({ createdAt: 1 }).limit(100);
+
+            // messages = await Message.find({
+            //     $or: [
+            //         { senderId: myId, receiverId: selectedUserId },
+            //         { senderId: selectedUserId, receiverId: myId },
+            //     ]
+            // }).sort({ createdAt: 1 }).limit(100);
+
+            messages = await Message.find({ roomId })
+                .sort({ createdAt: 1 })
+                .limit(100);
 
             await redis.del(`chat:${roomId}`);
             // Optionally: save MongoDB messages to Redis
@@ -93,20 +98,23 @@ export const sendMessage = async (req, res) => {
                 console.log("Cloudinary upload failed:", err.message);
             }
         }
+        const roomId = [senderId, receiverId].sort().join("_"); // consistent roomId
 
         const newMessage = await Message.create({
             senderId,
             receiverId,
+            roomId,
             text,
             image: imageUrl
         })
         // 1️⃣ Save in Redis cache
-        const roomId = [senderId, receiverId].sort().join("_"); // consistent roomId
         await saveMessageToRedis(roomId, newMessage);
 
 
         // Emit the new message to receiver's socket
-        const receiverSocketId = userSocketMap[receiverId];
+        const receiverSocketId = userSocketMap[receiverId.toString()];
+        // Always emit to the Room for active chat UI
+        io.to(roomId).emit("newMessage", newMessage);
         if (receiverSocketId) {
             io.to(receiverSocketId).emit("newMessage", newMessage);
         }
