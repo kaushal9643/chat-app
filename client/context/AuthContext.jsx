@@ -71,22 +71,45 @@ export const AuthProvider = ({children})=>{
     }
 
     //connect socket function to handle socket connection and online user updates
-    const connectSocket = (userData)=>{
-        if (!userData || socket?.connected) {
-            return;
-        }
-        const newSocket = io(backendUrl, {
-            query: {
-                userId: userData._id,
-            }
-        });
-        newSocket.connect(); 
-        setSocket(newSocket);
+    // const connectSocket = (userData)=>{
+    //     if (!userData || socket?.connected) {
+    //         return;
+    //     }
+    //     const newSocket = io(backendUrl, {
+    //         query: {
+    //             userId: userData._id,
+    //         }
+    //     });
+    //     newSocket.connect(); 
+    //     setSocket(newSocket);
 
-        newSocket.on("getOnlineUsers", (userIds)=>{
-            setOnlineUsers(userIds)
-        })
+    //     newSocket.on("getOnlineUsers", (userIds)=>{
+    //         setOnlineUsers(userIds)
+    //     })
+    // }
+
+    const connectSocket = (userData)=>{
+    if (!userData || socket?.connected) {
+        return;
     }
+
+    // This logic ensures we use the Render domain but remove the "/api" part for the Socket
+    const socketURL = backendUrl.replace("/api", "");
+
+    const newSocket = io(socketURL, { // Use socketURL instead of backendUrl
+        query: {
+            userId: userData._id,
+        },
+        transports: ["websocket"] // Add this to keep the connection stable on Render
+    });
+
+    newSocket.connect(); 
+    setSocket(newSocket);
+
+    newSocket.on("getOnlineUsers", (userIds)=>{
+        setOnlineUsers(userIds)
+    })
+}
 
     useEffect(()=>{
         if (token) {
