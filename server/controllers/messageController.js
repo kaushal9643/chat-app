@@ -40,21 +40,12 @@ export const getMessages = async (req, res) => {
         let messages = await getMessagesFromRedis(roomId);
 
         if (messages.length === 0) {
-            // 2️⃣ If Redis empty, fetch from MongoDB
-
-            // messages = await Message.find({
-            //     $or: [
-            //         { senderId: myId, receiverId: selectedUserId },
-            //         { senderId: selectedUserId, receiverId: myId },
-            //     ]
-            // }).sort({ createdAt: 1 }).limit(100);
-
             messages = await Message.find({ roomId })
                 .sort({ createdAt: 1 })
                 .limit(100);
 
             await redis.del(`chat:${roomId}`);
-            // Optionally: save MongoDB messages to Redis
+            
             for (let msg of messages) {
                 await saveMessageToRedis(roomId, msg);
             }
@@ -69,7 +60,7 @@ export const getMessages = async (req, res) => {
     }
 }
 
-// api to mark message as seen using message id
+// mark message as seen using message id
 export const markMessageAsSeen = async (req, res) => {
     try {
         const { id } = req.params;
@@ -164,8 +155,6 @@ export const generateSuggestions = async (req, res) => {
             return res.json({ suggestions: [] });
         }
 
-        // 3. CREATE THE TARGETED PROMPT
-        // We know the last message is from the partner because the frontend checked.
         const lastMessage = messages[0];
         const lastMessageText = lastMessage.text || "[Image]";
 

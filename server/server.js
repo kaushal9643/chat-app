@@ -9,7 +9,6 @@ import { Server } from "socket.io";
 import { redis } from "./redis.js";
 
 // Create Express app and HTTP server
-
 const app = express();
 const server = http.createServer(app)
 
@@ -38,54 +37,25 @@ io.on("connection", async (socket) => {
         socket.join(roomId);
     });
 
-    // --- Typing Indicator ---
-    // socket.on("typing", ({ roomId, userId }) => {
-    //     // emit to everyone in the room except sender
-    //     socket.to(roomId).emit("typing", {roomId, userId });
-    //     // Sidebar typing (only metadata)
+    socket.on("typing", ({ roomId, userId, receiverId }) => {
+        // 1. Send to the room (for people with chat open)
+        socket.to(roomId).emit("typing", { roomId, userId });
 
-    //     // socket.emit("typing", {roomId, userId});
+        // 2. Send to receiver's private socket (for Sidebar updates)
+        const receiverSocketId = userSocketMap[receiverId];
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("sidebarTyping", { userId });
+        }
+    });
 
-    //     // socket.broadcast.emit("sidebarTyping", {
-    //     //     roomId,
-    //     //     userId
-    //     // });
+    socket.on("stopTyping", ({ roomId, userId, receiverId }) => {
+        socket.to(roomId).emit("stopTyping", { roomId, userId });
 
-    //     socket.to(roomId).emit("sidebarTyping", { roomId, userId });
-    // });
-
-    // socket.on("stopTyping", ({ roomId, userId }) => {
-    //     socket.to(roomId).emit("stopTyping", { roomId, userId });
-    //     // socket.emit("stopTyping", {roomId, userId});
-    //     // socket.broadcast.emit("sidebarStopTyping", {
-    //     //     roomId,
-    //     //     userId
-    //     // });
-
-    //      // Sidebar stop typing only to room
-    //     socket.to(roomId).emit("sidebarStopTyping", { roomId, userId });
-    // });
-
-    // server.js - Update these handlers
-socket.on("typing", ({ roomId, userId, receiverId }) => {
-    // 1. Send to the room (for people with chat open)
-    socket.to(roomId).emit("typing", { roomId, userId });
-
-    // 2. Send to receiver's private socket (for Sidebar updates)
-    const receiverSocketId = userSocketMap[receiverId];
-    if (receiverSocketId) {
-        io.to(receiverSocketId).emit("sidebarTyping", { userId });
-    }
-});
-
-socket.on("stopTyping", ({ roomId, userId, receiverId }) => {
-    socket.to(roomId).emit("stopTyping", { roomId, userId });
-
-    const receiverSocketId = userSocketMap[receiverId];
-    if (receiverSocketId) {
-        io.to(receiverSocketId).emit("sidebarStopTyping", { userId });
-    }
-});
+        const receiverSocketId = userSocketMap[receiverId];
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("sidebarStopTyping", { userId });
+        }
+    });
 
     socket.on("disconnect", async () => {
         console.log("User Disconnected", userId);

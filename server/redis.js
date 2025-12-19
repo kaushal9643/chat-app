@@ -7,15 +7,15 @@ if (process.env.REDIS_URL) {
   redis = new Redis(process.env.REDIS_URL, {
     maxRetriesPerRequest: 3,
     enableReadyCheck: false,
-    tls: {}, // IMPORTANT for Upstash
+    tls: {},
   });
 
   redis.on("connect", () => {
-    console.log("✅ Connected to Redis (Upstash)");
+    console.log("Connected to Redis (Upstash)");
   });
 
   redis.on("error", (err) => {
-    console.error("❌ Redis error:", err.message);
+    console.error("Redis error:", err.message);
   });
 
 } else {
@@ -29,7 +29,7 @@ if (process.env.REDIS_URL) {
   });
 
   redis.on("error", (err) => {
-    console.error("❌ Local Redis error:", err.message);
+    console.error("Local Redis error:", err.message);
   });
 }
 

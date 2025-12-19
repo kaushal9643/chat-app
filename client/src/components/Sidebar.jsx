@@ -13,20 +13,9 @@ const Sidebar = () => {
 
     const filteredUsers = input ? users.filter((user) => user.fullName.toLowerCase().includes(input.toLowerCase())) : users;
 
-    // Sidebar.jsx
-
-// This runs once when you log in AND whenever someone comes online/offline
-useEffect(() => {
-    getUsers();
-}, [onlineUsers.length]); // Using .length is more stable for tracking changes
-//     useEffect(() => {
-//         getUsers()
-//     }, [onlineUsers])
-
-//     // Sidebar.jsx
-// useEffect(() => {
-//     getUsers(); 
-// }, []); // <--- Empty array ensures this runs as soon as you log in
+    useEffect(() => {
+        getUsers();
+    }, [onlineUsers.length]);
 
     return (
         <div className={`bg-[#8185B2]/10 h-full p-5 rounded-r-xl overflow-y-scroll text-white ${selectedUser ? "max-md:hidden" : ""}`}>

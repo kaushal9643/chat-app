@@ -18,12 +18,12 @@ const ChatContainer = () => {
   const getRoomId = (user1, user2) => [user1, user2].sort().join("_");
 
   const roomId =
-  selectedUser && authUser
-    ? getRoomId(authUser._id, selectedUser._id)
-    : null;
+    selectedUser && authUser
+      ? getRoomId(authUser._id, selectedUser._id)
+      : null;
 
-const isTyping =
-  roomId && roomTyping[roomId]?.includes(selectedUser._id);
+  const isTyping =
+    roomId && roomTyping[roomId]?.includes(selectedUser._id);
 
   // Fetch AI suggestions for received messages
   const fetchSuggestions = async () => {
@@ -67,45 +67,27 @@ const isTyping =
 
   const typingTimeoutRef = useRef(null);
 
+  const handleTyping = () => {
+    if (!socket || !authUser || !selectedUser) return;
 
-// const handleTyping = () => {
-//   if (!socket || !authUser || !selectedUser) return;
+    const roomId = getRoomId(authUser._id, selectedUser._id);
 
-//   const roomId = getRoomId(authUser._id, selectedUser._id);
-
-//   socket.emit("typing", { roomId, userId: authUser._id });
-
-//   if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-//   typingTimeoutRef.current = setTimeout(() => {
-//     socket.emit("stopTyping", { roomId, userId: authUser._id });
-//   }, 800);
-// };
-
-
-// ChatContainer.jsx - Update handleTyping
-const handleTyping = () => {
-  if (!socket || !authUser || !selectedUser) return;
-
-  const roomId = getRoomId(authUser._id, selectedUser._id);
-
-  // ADD receiverId here!
-  socket.emit("typing", { 
-    roomId, 
-    userId: authUser._id, 
-    receiverId: selectedUser._id 
-  });
-
-  if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-  typingTimeoutRef.current = setTimeout(() => {
-    socket.emit("stopTyping", { 
-      roomId, 
-      userId: authUser._id, 
-      receiverId: selectedUser._id 
+    socket.emit("typing", {
+      roomId,
+      userId: authUser._id,
+      receiverId: selectedUser._id
     });
-  }, 800);
-};
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit("stopTyping", {
+        roomId,
+        userId: authUser._id,
+        receiverId: selectedUser._id
+      });
+    }, 800);
+  };
 
   // join room on chat selection
   useEffect(() => {
