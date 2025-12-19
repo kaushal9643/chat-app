@@ -12,9 +12,17 @@ import { redis } from "./redis.js";
 const app = express();
 const server = http.createServer(app)
 
+const ALLOWED_ORIGIN = process.env.NODE_ENV === "production" 
+    ? "https://your-frontend-name.vercel.app" 
+    : "http://localhost:5173";
+
 // Initialize socket.io server
 export const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: {
+        origin: ALLOWED_ORIGIN,
+        methods: ["GET", "POST"],
+        credentials: true
+    }
 })
 
 // Store online users
@@ -66,7 +74,12 @@ io.on("connection", async (socket) => {
 
 // Middlewares setup
 app.use(express.json({ limit: "4mb" }))
-app.use(cors())
+// app.use(cors())
+
+app.use(cors({
+    origin: ALLOWED_ORIGIN,
+    credentials: true
+}));
 
 // Routes setup
 app.use("/api/status", (req, res) => res.send("Server is live"))
@@ -74,12 +87,36 @@ app.use("/api/auth", userRouter)
 app.use("/api/messages", messageRouter);
 
 // Connect to mongoDB
-await connectDB();
+// await connectDB();
 
-if (process.env.NODE_ENV !== "production") {
-    const PORT = process.env.PORT || 5000;
-    server.listen(PORT, () => console.log("Server is running on PORT: " + PORT))
-}
+// if (process.env.NODE_ENV !== "production") {
+//     const PORT = process.env.PORT || 5000;
+//     server.listen(PORT, () => console.log("Server is running on PORT: " + PORT))
+// }
+
+// const PORT = process.env.PORT || 5000;
+
+// Use "0.0.0.0" to ensure it accepts external connections on Render
+// server.listen(PORT, "0.0.0.0", () => {
+//     console.log("Server is running on PORT: " + PORT);
+// });
 
 // Export server for vercel
+// export default server;
+
+const startServer = async () => {
+    try {
+        await connectDB();
+        const PORT = process.env.PORT || 5000;
+        server.listen(PORT, "0.0.0.0", () => {
+            console.log(`Server is running on PORT: ${PORT}`);
+        });
+    } catch (error) {
+        console.error("Database connection failed:", error);
+        process.exit(1);
+    }
+};
+
+startServer();
+
 export default server;
