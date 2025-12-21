@@ -34,21 +34,28 @@ export const getMessages = async (req, res) => {
         const { id: selectedUserId } = req.params;
         const myId = req.user._id;
 
-        const roomId = [myId, selectedUserId].sort().join("_"); // consistent roomId
+        const roomId = [myId, selectedUserId].sort().join("_"); 
 
-        // 1️⃣ Try Redis first
+        // 1. Try Redis first
         let messages = await getMessagesFromRedis(roomId);
 
-        if (messages.length === 0) {
-            messages = await Message.find({ roomId })
-                .sort({ createdAt: 1 })
-                .limit(100);
+        if (!messages || messages.length === 0) {
+            messages = await Message.find({
+                $or: [
+                    { senderId: myId, receiverId: selectedUserId },
+                    { senderId: selectedUserId, receiverId: myId },
+                ],
+            })
+            .sort({ createdAt: 1 })
+            .limit(100);
 
-            await redis.del(`chat:${roomId}`);
-            
-            for (let msg of messages) {
-                await saveMessageToRedis(roomId, msg);
+            if (messages.length > 0) {
+                await redis.del(`chat:${roomId}`); 
+                for (let msg of messages) {
+                    await saveMessageToRedis(roomId, msg);
+                }
             }
+
         }
 
         await Message.updateMany({ senderId: selectedUserId, receiverId: myId }, { seen: true });
@@ -98,7 +105,7 @@ export const sendMessage = async (req, res) => {
             text,
             image: imageUrl
         })
-        // 1️⃣ Save in Redis cache
+        // Save in Redis cache
         await saveMessageToRedis(roomId, newMessage);
 
 
