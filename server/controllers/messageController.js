@@ -143,7 +143,10 @@ export const generateSuggestions = async (req, res) => {
         console.log(`Generating suggestions for User ${myId} replying to ${chatPartnerId}`);
 
         // Initialize Gemini client
-        const ai = new GoogleGenAI({});
+        const ai = new GoogleGenAI({
+            apiKey: process.env.GEMINI_API_KEY
+        });
+        console.log("KEY:", process.env.GEMINI_API_KEY);
         console.log("Gemini client initialized");
 
         // 2. FETCH MESSAGES FOR CONTEXT

@@ -1,13 +1,38 @@
 import {redis} from "../redis.js";
 
+// export const saveMessageToRedis = async (roomId, messageData) => {
+//   if (!redis) return;
+
+//   try {
+//     const key = `chat:${roomId}`;
+//     await redis.rpush(key, JSON.stringify(messageData));
+//     await redis.ltrim(key, -100, -1);
+//   } catch (err) {
+//     console.error("Redis save failed:", err.message);
+//   }
+// };
+
 export const saveMessageToRedis = async (roomId, messageData) => {
-  if (!redis) return;
+
+  if (!redis) {
+    console.log("Redis not initialized");
+    return;
+  }
 
   try {
+
     const key = `chat:${roomId}`;
+
+    console.log("Saving to Redis:", key);
+
     await redis.rpush(key, JSON.stringify(messageData));
+
+    console.log("Saved successfully");
+
     await redis.ltrim(key, -100, -1);
+
   } catch (err) {
+
     console.error("Redis save failed:", err.message);
   }
 };
