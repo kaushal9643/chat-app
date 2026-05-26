@@ -12,11 +12,8 @@ import { redis } from "./redis.js";
 const app = express();
 const server = http.createServer(app)
 
-// const ALLOWED_ORIGIN = process.env.NODE_ENV === "production" 
-//     ? "https://chat-app-psi-silk.vercel.app" 
-//     : "http://localhost:5173";
-
 const ALLOWED_ORIGIN = "https://chat-app-psi-silk.vercel.app";
+console.log("CORS ORIGIN:", ALLOWED_ORIGIN);
 
 // Initialize socket.io server
 export const io = new Server(server, {
