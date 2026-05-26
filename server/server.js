@@ -12,9 +12,11 @@ import { redis } from "./redis.js";
 const app = express();
 const server = http.createServer(app)
 
-const ALLOWED_ORIGIN = process.env.NODE_ENV === "production" 
-    ? "https://chat-app-psi-silk.vercel.app" 
-    : "http://localhost:5173";
+// const ALLOWED_ORIGIN = process.env.NODE_ENV === "production" 
+//     ? "https://chat-app-psi-silk.vercel.app" 
+//     : "http://localhost:5173";
+
+const ALLOWED_ORIGIN = "https://chat-app-psi-silk.vercel.app";
 
 // Initialize socket.io server
 export const io = new Server(server, {
@@ -75,7 +77,7 @@ io.on("connection", async (socket) => {
 // Middlewares setup
 app.use(express.json({ limit: "4mb" }))
 // app.use(cors())
-
+    
 app.use(cors({
     origin: ALLOWED_ORIGIN,
     credentials: true
