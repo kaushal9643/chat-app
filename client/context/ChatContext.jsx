@@ -17,6 +17,7 @@ export const ChatProvider = ({ children }) => {
   const processedMessages = useRef(new Set()); // 2. Create a "Memory" for message IDs
 
   /* ================= MASTER MESSAGE & SIDEBAR LISTENER ================= */
+  
   useEffect(() => {
     if (!socket) return;
 
