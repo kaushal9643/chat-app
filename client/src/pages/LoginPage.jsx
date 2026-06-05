@@ -9,17 +9,20 @@ const LoginPage = () => {
   const [password, setPassword] = useState("")
   const [bio, setBio] = useState("")
   const [isDataSubmitted, setIsDataSubmitted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const {login} = useContext(AuthContext)
+  const { login } = useContext(AuthContext)
 
-  const onSubmitHandler = (e) => {
+  const onSubmitHandler = async (e) => {
     e.preventDefault();
     if (currState === "Sign up" && !isDataSubmitted) {
       setIsDataSubmitted(true)
       return;
     }
 
-    login(currState === "Sign up" ? 'signup' : 'login', {fullName, email, password, bio})
+    setIsLoading(true)
+    await login(currState === "Sign up" ? 'signup' : 'login', { fullName, email, password, bio })
+    setIsLoading(false)
   }
 
   return (
@@ -32,7 +35,6 @@ const LoginPage = () => {
         <h2 className='font-medium text-2xl flex justify-between items-center'>
           {currState}
           {isDataSubmitted && <img onClick={() => setIsDataSubmitted(false)} src={assets.arrow_icon} alt="" className='w-5 cursor-pointer' />}
-
         </h2>
 
         {currState === "Sign up" && !isDataSubmitted && (
@@ -49,15 +51,28 @@ const LoginPage = () => {
               type="password" placeholder='Password' required className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500' />
           </>
         )}
-        {
-          currState === "Sign up" && isDataSubmitted && (
-            <textarea onChange={(e) => setBio(e.target.value)} value={bio}
-              rows={4} className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500' placeholder='provide a short bio...' required ></textarea>
-          )
-        }
- 
-        <button type='submit' className='py-3 bg-gradient-to-r from-purple-400 to-violet-600 text-white rounded-md cursor-pointer'>
-          {currState === "Sign up" ? "Create Account" : "Login Now"}
+
+        {currState === "Sign up" && isDataSubmitted && (
+          <textarea onChange={(e) => setBio(e.target.value)} value={bio}
+            rows={4} className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500' placeholder='provide a short bio...' required />
+        )}
+
+        <button
+          type='submit'
+          disabled={isLoading}
+          className='py-3 bg-gradient-to-r from-purple-400 to-violet-600 text-white rounded-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed'
+        >
+          {isLoading ? (
+            <>
+              <svg className='animate-spin h-5 w-5 text-white' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'>
+                <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
+                <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z' />
+              </svg>
+              {currState === "Sign up" ? "Creating Account..." : "Logging in..."}
+            </>
+          ) : (
+            currState === "Sign up" ? "Create Account" : "Login Now"
+          )}
         </button>
 
         <div className='flex items-center gap-2 text-sm text-gray-500'>
