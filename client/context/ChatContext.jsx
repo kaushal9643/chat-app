@@ -17,38 +17,43 @@ export const ChatProvider = ({ children }) => {
   const processedMessages = useRef(new Set()); // 2. Create a "Memory" for message IDs
 
   /* ================= MASTER MESSAGE & SIDEBAR LISTENER ================= */
-  
+
   useEffect(() => {
     if (!socket) return;
 
     const handleNewMessage = (msg) => {
-      
-      if (processedMessages.current.has(msg._id)) return;
-      processedMessages.current.add(msg._id);
+    // Skip your own messages — already shown via optimistic update
+    if (msg.senderId === authUser._id) return;
 
-      if (processedMessages.current.size > 100) {
+    if (processedMessages.current.has(msg._id)) return;
+    processedMessages.current.add(msg._id);
+
+    if (processedMessages.current.size > 100) {
         const firstItem = processedMessages.current.values().next().value;
         processedMessages.current.delete(firstItem);
-      }
+    }
 
-      const currentRoomId = selectedUser
+    const currentRoomId = selectedUser
         ? [authUser._id, selectedUser._id].sort().join("_")
         : null;
 
-      if (selectedUser && msg.roomId === currentRoomId) {
+    if (selectedUser && msg.roomId === currentRoomId) {
         setMessages(prev => [...prev, msg]);
-        if (msg.senderId !== authUser._id) {
-          axios.put(`/api/messages/mark/${msg._id}`);
-        }
-      } else {
-      
+        axios.put(`/api/messages/mark/${msg._id}`);
+    } else {
         if (msg.receiverId === authUser._id) {
-          setUnseenMessages(prev => ({
-            ...prev,
-            [msg.senderId]: (prev[msg.senderId] || 0) + 1
-          }));
+            setUnseenMessages(prev => ({
+                ...prev,
+                [msg.senderId]: (prev[msg.senderId] || 0) + 1
+            }));
         }
-      }
+    }
+};
+
+    const handleReplaceMessage = ({ tempId, realMessage }) => {
+      setMessages(prev =>
+        prev.map(msg => msg._id === tempId ? realMessage : msg)
+      );
     };
 
     const handleSidebarTyping = ({ userId }) => {
@@ -59,11 +64,13 @@ export const ChatProvider = ({ children }) => {
     };
 
     socket.on("newMessage", handleNewMessage);
+    socket.on("replaceMessage", handleReplaceMessage);
     socket.on("sidebarTyping", handleSidebarTyping);
     socket.on("sidebarStopTyping", handleSidebarStopTyping);
 
     return () => {
       socket.off("newMessage", handleNewMessage);
+      socket.off("replaceMessage", handleReplaceMessage);
       socket.off("sidebarTyping", handleSidebarTyping);
       socket.off("sidebarStopTyping", handleSidebarStopTyping);
     };
@@ -125,8 +132,28 @@ export const ChatProvider = ({ children }) => {
 
   const sendMessage = async (messageData) => {
     try {
-      await axios.post(`/api/messages/send/${selectedUser._id}`, messageData);
+      const tempId = `temp_${Date.now()}`;
+      
+      //Optimistic message — show instantly
+      const optimisticMsg = {
+        _id: `temp_${Date.now()}`,
+        text: messageData.text,
+        image: messageData.image || null,
+        senderId: authUser._id,
+        receiverId: selectedUser._id,
+        roomId: [authUser._id, selectedUser._id].sort().join("_"),
+        createdAt: new Date().toISOString(),
+        seen: false,
+      };
+      setMessages(prev => [...prev, optimisticMsg]);
+
+      await axios.post(`/api/messages/send/${selectedUser._id}`,{
+        ...messageData,
+        tempId,
+      });
     } catch (err) {
+      //Remove optimistic message if failed
+      setMessages(prev => prev.filter(msg => !msg._id.startsWith("temp_")));
       toast.error(err.message);
     }
   };

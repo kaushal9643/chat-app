@@ -32,50 +32,32 @@ export const signup = async(req, res)=>{
         res.json({success:false, message:error.message});
     }
 }
- 
+
 
 // Controller to login a user
-export const login = async(req, res)=>{
+export const login =  async(req, res)=>{
     try {
-        console.log("LOGIN START");
-
         const {email, password} = req.body;
-        console.log("Email:", email);
-
         const userData = await User.findOne({email});
-        console.log("User found:", userData ? "YES" : "NO");
 
         if (!userData) {
-            return res.json({success:false, message:"User not found"});
+            return res.json({ success: false, message: "User not found" });
         }
 
-        const isPasswordCorrect = await bcrypt.compare(
-            password,
-            userData.password
-        );
+        const isPasswordCorrect = await bcrypt.compare(password, userData.password);
 
-        console.log("Password compare done");
+        if (!isPasswordCorrect) {
+            return res.json({success:false, message: "Invalid credentials"})
+        }
 
         const token = generateToken(userData._id);
-
-        console.log("Token generated");
-
-        return res.json({
-            success:true,
-            message: "Login successful",
-            userData,
-            token
-        });
-
-    } catch(error) {
-        console.error("LOGIN ERROR FULL:", error);
-        return res.status(500).json({
-            success:false,
-            message:error.message,
-            stack:error.stack
-        });
+        res.json({success:true, userData, token, message: "Login successful"});
+    } catch (error) {
+        console.log(error.message);
+        res.json({success:false, message:error.message});   
     }
 }
+
 
 
 // Controller to check if user is authenticated

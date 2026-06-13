@@ -82,12 +82,11 @@ export const markMessageAsSeen = async (req, res) => {
 // Send message to selected user
 export const sendMessage = async (req, res) => {
     try {
-        const { text, image } = req.body;
+        const { text, image, tempId } = req.body;
         const receiverId = req.params.id;
         const senderId = req.user._id;
 
         let imageUrl;
-
         if (image) {
             try {
                 const uploadResponse = await cloudinary.uploader.upload(image);
@@ -96,32 +95,50 @@ export const sendMessage = async (req, res) => {
                 console.log("Cloudinary upload failed:", err.message);
             }
         }
-        const roomId = [senderId, receiverId].sort().join("_"); // consistent roomId
 
+        const roomId = [senderId, receiverId].sort().join("_");
+
+        // 1. Save to DB
         const newMessage = await Message.create({
             senderId,
             receiverId,
             roomId,
             text,
             image: imageUrl
-        })
-        // Save in Redis cache
+        });
+
+        // 2. Save to Redis
         await saveMessageToRedis(roomId, newMessage);
 
+        // 3. Replace optimistic message on SENDER side only
+        const senderSocketId = userSocketMap[senderId.toString()];
+        if (senderSocketId) {
+            io.to(senderSocketId).emit("replaceMessage", {
+                tempId: `temp_`,   // frontend will match by text
+                realMessage: newMessage,
+            });
+        }
 
-        // Emit the new message to receiver's socket
+        // 4. Send real message to RECEIVER
         const receiverSocketId = userSocketMap[receiverId.toString()];
-        // Always emit to the Room for active chat UI
-        io.to(roomId).emit("newMessage", newMessage);
-        if (receiverSocketId) {
+        const receiverSockets = await io.in(roomId).fetchSockets();
+        const receiverInRoom = receiverSockets.some(s => s.id === receiverSocketId);
+
+        if (receiverInRoom) {
+            // Receiver has chat open — emit via room
+            io.to(roomId).emit("newMessage", newMessage);
+        } else if (receiverSocketId) {
+            // Receiver has different chat open — emit privately for unseen count
             io.to(receiverSocketId).emit("newMessage", newMessage);
         }
+
         res.json({ success: true, newMessage });
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: error.message });
     }
 }
+
 
 // Generate AI reply suggestions
 export const generateSuggestions = async (req, res) => {
